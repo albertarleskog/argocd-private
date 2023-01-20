@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://projectcalico.docs.tigera.io/charts
     targetRevision: v3.25.0
-    chart: projectcalico
+    chart: tigera-operator
     helm:
       values: |
         installation:
