@@ -23,13 +23,3 @@ spec:
       prune: true
     syncOptions:
     - CreateNamespace=true
-
----
-apiVersion: metallb.io/v1beta1
-kind: IPAddressPool
-metadata:
-  name: cheap-ipv4
-  namespace: metallb-system
-spec:
-  addresses:
-  - 10.1.40.40-10.1.40.80
