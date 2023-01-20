@@ -11,6 +11,10 @@ spec:
     repoURL: https://metallb.github.io/metallb
     targetRevision: 0.13.7
     chart: metallb
+    helm:
+      values: |
+        speaker:
+          enabled: false
   destination:
     namespace: metallb-system
     server: {{ .Values.spec.destination.server }}
