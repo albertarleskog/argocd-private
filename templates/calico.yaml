@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: calico
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://projectcalico.docs.tigera.io/charts
+    targetRevision: v3.25.0
+    chart: projectcalico
+    helm:
+      values: |
+        installation:
+          calicoNetwork:
+            bgp: Enabled
+            ipPools:
+              - cidr: 10.50.0.0/16
+                encapsulation: None
+                blockSize: 26
+                natOutgoing: Enabled
+                nodeSelector: all()
+  destination:
+    namespace: tigera-operator
+    server: {{ .Values.spec.destination.server }}
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+    - CreateNamespace=true
