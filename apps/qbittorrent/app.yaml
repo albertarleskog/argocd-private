@@ -1,0 +1,122 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: allow-mullvad-vpn
+spec:
+  selector: app == 'qbittorrent'
+  egress:
+  - action: Allow
+    protocol: UDP
+    destination:
+      nets:
+        - 185.213.154.69/32
+      ports:
+        - 51820
+  - action: Allow
+    protocol: TCP
+    source:
+      namespaceSelector: kubernetes.io/metadata.name == 'servarr'
+
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: mullvad-vpn
+  namespace: servarr
+spec:
+  encryptedData:
+    wg0.conf: AgBCejPamknr2dRk19oEEEGcaeoAjIq6GHdGuyj7qkLL9pf0+wLreqbXCB9HY2N6/cUAeU9NZBZ1M/RFcG0Cgz/ZLEo5ydPXH8a1KTvqG5xRqmdO7FcvQ8MnfeeKQryfozxBo2dEvLpHKHZNQajOkEsa+lwSoHQuFH/9/jJ+ooQw+hRT0JP3TaWMM16LovmhfsE3b2LJOPdXd/B+FIrSQg8D9fZMj4Rrl2TjDF2yaQuxgtOiYz06CKdAL3Fa7/QKbmnuFTT4EtNwb3oIWWdVTjLBADzqn8hCaqQPs6fSgrpZfVqoQqiUKhkQCc3g7sp9540R7OzjQSpDbvmSrcGIL9UFsaW7MBg4ojjOxVrFlDOAfdbEVRuW+yj/2sMANKiARERbDWGrTHleW/KvC4qCMm9i+Mtt+a6UYrakItqb/xW/+C6jCRaqLzUhkKyFKkUbLZWOETU0/rDDNh9FSFUvGc4JZ+NrjM2U632cARhf6uNqCDQMqv4sWyXwPvepSLmSmEGV7cM4d/kfnKL8dfQ3MPgC6vo7GLsfZtb2yRxd2hKqvPAiFJhHEG0UsYgTgQeTgina2h3LyNX1AtLUzS3rrq+0GVKcFdMWqzWx7zhOYfPvSSGr631V4KHMf2iuAf9wOnL03PxPZB7bLwpK60Yx4Z9X1PYm6UrrPO31gadAZTZE4WPH14j1wcHhSxwY75Vzc5peKBYy/le7fCVFanMoX/+x1lZYCIElgIBqntnoXCPbNbw8s9CU/kBkW6GKiCSJWD5AcwaSBkM6od62I3mDmOnzSgWmXNUTiujKfcl/LPzkSXe8bl7LxyNoJ91sXPf6PJdHIy5TOXSL57Kf3Sg0R3IXOwSiVeyW0GDZjKDJ/gZaNjZPKKHWZ639aZPxY4A05RL/WM/63OM7DyMNLTWYtuxMY01qClKWZD2FeJejs77EJd7m3Av1F6h7EcMS9mSeiHWxi5BZjDXAJym8IUIAFUaxRZi6HLh/Ts+8X/4wW6XHNpquaWCd3+jazailxfiXlHtqXdllr806deXIwzvi8Rb8xFTVO0yRfCGnyiCnI4RXGZdVZvBRgYCXE2jOT7GvyxU9+9YVRhUTvU9wEvXDI3ypqf2tlI3sCP1e2xTg5Ciee7bpdLpWvniPRAyEh5207FuZauF+CIO9n6GeccpPPH1ZQhpSzzF32lwzrfWTNsDqbxor9sBb90LOFzD8kjSWjlQqmKhOiMkCxByJ87KjaDqQrbv66regQu4XB4r9nV8NTHHztY4Lv7UM+p5MFG535dV2GBxz4h0bWoFdZH4=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: mullvad-vpn
+      namespace: servarr
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qbittorrent-config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-retain
+  resources:
+    requests:
+      storage: 512Mi
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: qbittorrent
+spec:
+  selector:
+    app: qbittorrent
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: qbittorrent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qbittorrent
+  template:
+    metadata:
+      name: qbittorrent
+      labels:
+        app: qbittorrent
+    spec:
+      containers:
+        - name: wireguard
+          image: jordanpotter/wireguard
+          env:
+            - name: LOCAL_SUBNETS
+              value: "10.50.0.0/24"
+          volumeMounts:
+            - name: wireguard
+              mountPath: /etc/wireguard/
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+            sysctls:
+              - name: net.ipv4.conf.all.src_valid_mark
+                value: "1"
+        - name: qbittorrent
+          image: hotio/qbittorrent:release
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Stockholm"
+            - name: UMASK
+              value: "002"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: wireguard
+          secret:
+            secretName: mullvad-vpn
+            optional: false
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
