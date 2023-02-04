@@ -1,0 +1,119 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: varnish
+spec:
+  rules:
+  - host: bazarr.infra.arleskog.se
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: varnish
+            port:
+              number: 80
+  - host: prowlarr.infra.arleskog.se
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: varnish
+            port:
+              number: 80
+  - host: radarr.infra.arleskog.se
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: varnish
+            port:
+              number: 80
+  - host: sonarr.infra.arleskog.se
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: varnish
+            port:
+              number: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: varnish
+spec:
+  selector:
+    app: varnish
+  ports:
+  - port: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varnish
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: varnish
+  template:
+    metadata:
+      labels:
+        app: varnish
+    spec:
+      containers:
+      - name: varnish
+        image: varnish:7.2.1
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: /etc/varnish/default.vcl
+          name: config
+          subPath: default.vcl
+      volumes:
+        - name: config
+          configMap:
+            name: varnish
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: varnish
+data:
+  default.vcl: |
+    vcl 4.0;
+    backend default none;
+    sub vcl_recv {
+      if (req.http.host ~ "^bazarr.+") {
+        set req.backend_hint = bazarr;
+      } else if (req.http.host ~ "^prowlarr.+") {
+        set req.backend_hint = prowlarr;
+      } else if (req.http.host ~ "^radarr.+") {
+        set req.backend_hint = radarr;
+      } else if (req.http.host ~ "^sonarr.+") {
+        set req.backend_hint = sonarr;
+      }
+    }
+    backend bazarr {
+      .host = "bazarr.servarr.svc.cluster.local:80";
+    }
+    backend prowlarr {
+      .host = "prowlarr.servarr.svc.cluster.local:80";
+    }
+    backend radarr {
+      .host = "radarr.servarr.svc.cluster.local:80";
+    }
+    backend sonarr {
+      .host = "sonarr.servarr.svc.cluster.local:80";
+    }
