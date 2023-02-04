@@ -116,6 +116,8 @@ spec:
             - name: config
               mountPath: /config
               subPath: wg0.conf
+            - name: media
+              mountPath: /data
           livenessProbe:
             httpGet:
               path: /
@@ -130,3 +132,7 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: qbittorrent-config
+        - name: media
+          nfs:
+            server: "10.1.40.6"
+            path: /mnt/pve/media
