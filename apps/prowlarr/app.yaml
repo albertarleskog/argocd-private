@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: prowlarr
-          image: lscr.io/linuxserver/prowlarr:develop
+          image: lscr.io/linuxserver/prowlarr
           env:
             - name: PUID
               value: "1000"
@@ -62,3 +62,9 @@ spec:
         - name: config
           persistentVolumeClaim:
             claimName: prowlarr-config
+      # Trackers does not resolve otherwise.
+      # https://stackoverflow.com/questions/65181012/does-alpine-have-known-dns-issue-within-kubernetes
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
