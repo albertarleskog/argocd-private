@@ -1,16 +1,18 @@
 apiVersion: projectcalico.org/v3
 kind: NetworkPolicy
 metadata:
-  name: allow-mullvad-vpn
-  namespace: servarr
+  name: qbittorrent-restrictions
 spec:
   selector: app == 'qbittorrent'
   ingress:
   - action: Allow
+    protocol: TCP
+    source:
+      namespaceSelector: kubernetes.io/metadata.name == 'servarr'
+  - action: Allow
     protocol: UDP
     source:
-      nets:
-        - 10.50.0.0/16
+      namespaceSelector: kubernetes.io/metadata.name == 'kube-system'
   egress:
   - action: Allow
     protocol: UDP
@@ -20,14 +22,9 @@ spec:
       ports:
         - 51820
   - action: Allow
-    protocol: TCP
-    source:
-      namespaceSelector: kubernetes.io/metadata.name == 'servarr'
-  - action: Allow
     protocol: UDP
     destination:
-      nets:
-        - 10.50.0.0/16
+      namespaceSelector: kubernetes.io/metadata.name == 'kube-system'
       ports:
         - 53
 
@@ -68,7 +65,7 @@ spec:
       targetPort: 8080
 
 ---
-kind: Deployment
+kind: StatefulSet
 apiVersion: apps/v1
 metadata:
   name: qbittorrent
@@ -96,9 +93,6 @@ spec:
             capabilities:
               add:
                 - NET_ADMIN
-            sysctls:
-              - name: net.ipv4.conf.all.src_valid_mark
-                value: "1"
         - name: qbittorrent
           image: hotio/qbittorrent:release
           env:
@@ -127,7 +121,6 @@ spec:
         - name: wireguard
           persistentVolumeClaim:
             claimName: wireguard-config
-            optional: false
         - name: config
           persistentVolumeClaim:
             claimName: qbittorrent-config
