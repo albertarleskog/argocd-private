@@ -111,12 +111,6 @@ spec:
               mountPath: /config
             - name: media
               mountPath: /data
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8080
-            initialDelaySeconds: 60
-            periodSeconds: 60
       volumes:
         - name: wireguard
           persistentVolumeClaim:
