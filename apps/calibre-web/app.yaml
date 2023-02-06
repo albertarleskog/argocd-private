@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calibre-web-config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 512Mi
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: calibre-web
+spec:
+  selector:
+    app: calibre-web
+  ports:
+    - port: 80
+      targetPort: 8083
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: calibre-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calibre-web
+  template:
+    metadata:
+      name: calibre-web
+      labels:
+        app: calibre-web
+    spec:
+      containers:
+        - name: calibre-web
+          image: lscr.io/linuxserver/calibre-web
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Stockholm"
+            - name: DOCKER_MODS
+              value: "ghcr.io/linuxserver/mods:universal-calibre" # Enable ebook conversion
+          ports:
+            - containerPort: 8083
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: books
+              mountPath: /books
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 60
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: calibre-web-config
+        - name: books
+          nfs:
+            server: "10.1.40.6"
+            path: /mnt/pve/media/media/books
