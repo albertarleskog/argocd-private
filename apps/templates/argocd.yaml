@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: 'https://argoproj.github.io/argo-helm'
-    targetRevision: 5.18.0
+    targetRevision: 5.20.0
     chart: argo-cd
     helm:
       values: |
@@ -17,12 +17,8 @@ spec:
           extraArgs:
             - "--disable-auth"
             - "--insecure"
-          ingress:
-            enabled: "true"
-            hosts:
-              - argocd.infra.arleskog.se
         dex:
-          enabled: "false"        
+          enabled: "false"
   destination:
     server: {{ .Values.spec.destination.server }}
     namespace: argocd
@@ -32,3 +28,4 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+    - Replace=true

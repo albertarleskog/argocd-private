@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-config
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: tdarr
+spec:
+  selector:
+    app: tdarr
+  ports:
+    - port: 80
+      targetPort: 8265
+    - port: 8266
+      targetPort: 8266
+
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: tdarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tdarr
+  template:
+    metadata:
+      name: tdarr
+      labels:
+        app: tdarr
+    spec:
+      containers:
+        - name: tdarr
+          image: ghcr.io/haveagitgat/tdarr
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Stockholm"
+            - name: UMASK_SET
+              value: "002"
+            - name: serverIP
+              value: "0.0.0.0"
+            - name: webUIPort
+              value: "8265"
+            - name: serverPort
+              value: "8266"
+          ports:
+            - containerPort: 8265 # WebUI.
+            - containerPort: 8266 # Server (TCP).
+          volumeMounts:
+            - name: config
+              mountPath: /app
+            - name: media
+              mountPath: /media
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: tdarr-config
+        - name: media
+          nfs:
+            server: "10.1.40.6"
+            path: /mnt/pve/media/media
