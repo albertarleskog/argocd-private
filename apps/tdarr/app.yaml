@@ -20,8 +20,10 @@ spec:
   ports:
     - port: 80
       targetPort: 8265
+      name: 'web'
     - port: 8266
       targetPort: 8266
+      name: 'server'
 
 ---
 kind: StatefulSet
