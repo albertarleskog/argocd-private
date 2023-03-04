@@ -60,5 +60,5 @@ spec:
             claimName: plex-config
         - name: media
           nfs:
-            server: "10.1.40.6"
-            path: /mnt/pve/media
+            server: "10.1.40.100"
+            path: /mnt/tank/media

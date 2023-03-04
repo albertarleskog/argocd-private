@@ -68,5 +68,5 @@ spec:
             claimName: calibre-web-config
         - name: books
           nfs:
-            server: "10.1.40.6"
-            path: /mnt/pve/media/media/books
+            server: "10.1.40.100"
+            path: /mnt/tank/media/books
