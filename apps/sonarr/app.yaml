@@ -60,7 +60,7 @@ spec:
             httpGet:
               path: /
               port: 8989
-            initialDelaySeconds: 60
+            initialDelaySeconds: 180
             periodSeconds: 60
       volumes:
         - name: config
@@ -70,3 +70,7 @@ spec:
           nfs:
             server: "10.1.40.100"
             path: /mnt/tank/media
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"

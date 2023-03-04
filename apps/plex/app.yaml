@@ -62,3 +62,7 @@ spec:
           nfs:
             server: "10.1.40.100"
             path: /mnt/tank/media
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"

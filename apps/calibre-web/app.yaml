@@ -70,3 +70,7 @@ spec:
           nfs:
             server: "10.1.40.100"
             path: /mnt/tank/media/books
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
